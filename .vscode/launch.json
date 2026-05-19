@@ -1,0 +1,22 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Arqgene Farmer App",
+      "request": "launch",
+      "type": "dart"
+    },
+    {
+      "name": "Arqgene Admin Web",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/admin_main.dart",
+      "args": [
+        "-d",
+        "chrome",
+        "--web-renderer",
+        "html"
+      ]
+    }
+  ]
+}

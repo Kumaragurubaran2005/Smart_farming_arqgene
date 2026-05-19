@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "829359812676",
+    "project_id": "fresherzon",
+    "storage_bucket": "fresherzon.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:829359812676:android:17c7a58f3e2b792ba18c11",
+        "android_client_info": {
+          "package_name": "com.UpdeshArqgene.FresherZonApp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCObaI80ULol4BmoSOD-5G6U1Q7g5iwlnI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
