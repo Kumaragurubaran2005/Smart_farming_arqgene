@@ -55,6 +55,10 @@ class AuthProvider extends ChangeNotifier {
         onAutoRetrievalTimeout: (verId) {
           _verificationId = verId;
         },
+        onVerificationFailed: (error) {
+          _setError(error);
+          _setLoading(false);
+        },
       ),
     );
 

@@ -1,13 +1,16 @@
 import 'package:arqgene_farmer_app/db/schemas.dart';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../db/isar_service.dart';
 import '../core/widgets/app_background.dart';
+import '../core/constants/colors.dart';
 import 'home_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -16,7 +19,7 @@ class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key, this.isSellerProfile = false});
 
   @override
-  _ProfileScreenState createState() => _ProfileScreenState();
+  State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
@@ -59,7 +62,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
       }
     } catch (e) {
-      print("Error fetching seller profile: $e");
+      debugPrint("Error fetching seller profile: $e");
     } finally {
       setState(() {
         _isLoading = false;
@@ -72,7 +75,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _selectedFarmSize == null ||
         _selectedCrops.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill all fields")),
+        SnackBar(
+          content: Text(
+            "Please fill all fields",
+            style: GoogleFonts.outfit(fontWeight: FontWeight.w500),
+          ),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
       return;
     }
@@ -91,7 +101,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (mounted) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => HomeScreen()),
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => HomeScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 600),
+        ),
       );
     }
   }
@@ -120,7 +136,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     try {
       Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
       );
 
       List<Placemark> placemarks = await placemarkFromCoordinates(
@@ -144,130 +162,253 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     String title = widget.isSellerProfile ? "Seller Profile" : "profile_title".tr();
-    
+    // Fallback translation
+    if (title.contains("profile_title")) {
+      title = "Farmer Profile Setup";
+    }
+
     return AppBackground(
       title: title,
       child: _isLoading && widget.isSellerProfile
-          ? const Center(child: CircularProgressIndicator(color: Colors.white))
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(20.0),
-              child: Card(
-                color: Colors.white.withOpacity(0.9),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.92),
+                  borderRadius: AppDecorations.borderLarge,
+                  border: Border.all(color: Colors.white.withOpacity(0.4), width: 1.5),
+                  boxShadow: AppDecorations.premiumShadow,
+                ),
                 child: Padding(
-                  padding: const EdgeInsets.all(20.0),
+                  padding: const EdgeInsets.all(24.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (widget.isSellerProfile && _sellerData != null) ...[
+                        _buildProfileDisplayHeader(_sellerData?['name'] ?? 'N/A'),
+                        const SizedBox(height: 20),
+                        const Divider(color: AppColors.border),
+                        const SizedBox(height: 10),
                         _buildProfileDisplayRow(Icons.person, "Name", _sellerData?['name']),
-                        _buildProfileDisplayRow(Icons.phone, "Mobile Number", _sellerData?['mobile']),
-                        _buildProfileDisplayRow(Icons.location_on, "Address", _sellerData?['address']),
-                        _buildProfileDisplayRow(Icons.credit_card, "Aadhaar Number", _sellerData?['adharNumber']),
-                        _buildProfileDisplayRow(Icons.restaurant, "FSSAI Number", _sellerData?['fssaiNumber']),
-                        _buildProfileDisplayRow(Icons.category, "Category", _sellerData?['category']),
+                        _buildProfileDisplayRow(Icons.phone_iphone_rounded, "Mobile Number", _sellerData?['mobile']),
+                        _buildProfileDisplayRow(Icons.location_on_outlined, "Address", _sellerData?['address']),
+                        _buildProfileDisplayRow(Icons.badge_outlined, "Aadhaar Number", _sellerData?['adharNumber']),
+                        _buildProfileDisplayRow(Icons.restaurant_menu_rounded, "FSSAI Number", _sellerData?['fssaiNumber']),
+                        _buildProfileDisplayRow(Icons.eco_rounded, "Category", _sellerData?['category']),
                       ] else if (widget.isSellerProfile && _sellerData == null) ...[
-                        const Center(child: Text('Seller data not found or not approved.')),
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 30.0),
+                            child: Column(
+                              children: [
+                                const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 48),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Seller profile details could not be found.',
+                                  textAlign: TextAlign.center,
+                                  style: AppTextStyles.bodyLarge,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ] else ...[
+                        // SETUP PROFILE VIEW FOR FARMERS
                         Text(
-                          "name_label".tr(),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          "name_label".tr().contains("name_label") ? "Full Name" : "name_label".tr(),
+                          style: GoogleFonts.outfit(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textDark,
+                          ),
                         ),
                         const SizedBox(height: 10),
                         TextField(
                           controller: _nameController,
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.person, color: Colors.green),
+                          style: GoogleFonts.outfit(fontSize: 16, color: AppColors.textDark, fontWeight: FontWeight.w600),
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: AppColors.border),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: AppColors.border),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                            ),
+                            prefixIcon: const Icon(Icons.person_rounded, color: AppColors.primary),
+                            filled: true,
+                            fillColor: AppColors.background.withOpacity(0.5),
                           ),
-                        ),
+                        )
+                        .animate()
+                        .fadeIn(duration: 400.ms)
+                        .slideY(begin: 0.1, end: 0),
+                        
                         const SizedBox(height: 20),
+                        
                         Text(
-                          "location_label".tr(),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          "location_label".tr().contains("location_label") ? "Location / Village" : "location_label".tr(),
+                          style: GoogleFonts.outfit(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textDark,
+                          ),
                         ),
                         const SizedBox(height: 10),
                         Container(
-                          padding: const EdgeInsets.all(10),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                           decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey),
-                            borderRadius: BorderRadius.circular(5),
+                            border: Border.all(color: AppColors.border, width: 1.5),
+                            borderRadius: BorderRadius.circular(12),
+                            color: AppColors.background.withOpacity(0.5),
                           ),
                           child: Row(
                             children: [
                               Expanded(
                                 child: Text(
                                   _locationAddress,
-                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textDark,
+                                  ),
                                 ),
                               ),
-                              IconButton(
-                                icon: _isLoading 
-                                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                                  : const Icon(Icons.my_location, color: Colors.blue),
-                                onPressed: _isLoading ? null : _detectLocation,
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withOpacity(0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: IconButton(
+                                  icon: _isLoading 
+                                    ? const SizedBox(
+                                        width: 20, 
+                                        height: 20, 
+                                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                                      )
+                                    : const Icon(Icons.my_location_rounded, color: AppColors.primary),
+                                  onPressed: _isLoading ? null : _detectLocation,
+                                ),
                               ),
                             ],
                           ),
-                        ),
-                        const SizedBox(height: 20),
+                        )
+                        .animate()
+                        .fadeIn(delay: 100.ms, duration: 400.ms)
+                        .slideY(begin: 0.1, end: 0),
+                        
+                        const SizedBox(height: 24),
+                        
                         Text(
-                          "farm_size_label".tr(),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          "farm_size_label".tr().contains("farm_size_label") ? "Farm Size" : "farm_size_label".tr(),
+                          style: GoogleFonts.outfit(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textDark,
+                          ),
                         ),
+                        const SizedBox(height: 8),
                         Wrap(
                           spacing: 10,
                           children: _farmSizes.map((sizeKey) {
+                            final textVal = sizeKey == 'size_small' ? 'Small' : (sizeKey == 'size_medium' ? 'Medium' : 'Large');
+                            final translatedText = sizeKey.tr().contains('size_') ? textVal : sizeKey.tr();
+                            final isSelected = _selectedFarmSize == sizeKey;
+                            
                             return ChoiceChip(
-                              label: Text(sizeKey.tr()),
-                              selected: _selectedFarmSize == sizeKey,
+                              label: Text(
+                                translatedText,
+                                style: GoogleFonts.outfit(
+                                  color: isSelected ? Colors.white : AppColors.textDark,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              selected: isSelected,
                               onSelected: (selected) {
                                 setState(() => _selectedFarmSize = selected ? sizeKey : null);
                               },
-                              selectedColor: Colors.green[200],
+                              selectedColor: AppColors.primary,
+                              backgroundColor: AppColors.background,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             );
                           }).toList(),
-                        ),
-                        const SizedBox(height: 20),
+                        )
+                        .animate()
+                        .fadeIn(delay: 200.ms, duration: 400.ms),
+                        
+                        const SizedBox(height: 24),
+                        
                         Text(
-                          "crops_label".tr(),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          "crops_label".tr().contains("crops_label") ? "Crops You Grow" : "crops_label".tr(),
+                          style: GoogleFonts.outfit(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textDark,
+                          ),
                         ),
+                        const SizedBox(height: 8),
                         Wrap(
                           spacing: 8.0,
                           runSpacing: 4.0,
                           children: _cropOptions.map((crop) {
+                            final isSelected = _selectedCrops.contains(crop);
                             return FilterChip(
-                              label: Text(crop),
-                              selected: _selectedCrops.contains(crop),
+                              label: Text(
+                                crop,
+                                style: GoogleFonts.outfit(
+                                  color: isSelected ? Colors.white : AppColors.textDark,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              selected: isSelected,
                               onSelected: (selected) {
                                 setState(() {
                                   selected ? _selectedCrops.add(crop) : _selectedCrops.remove(crop);
                                 });
                               },
-                              selectedColor: Colors.green[200],
-                              checkmarkColor: Colors.green[900],
+                              selectedColor: AppColors.primary,
+                              backgroundColor: AppColors.background,
+                              checkmarkColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                             );
                           }).toList(),
-                        ),
+                        )
+                        .animate()
+                        .fadeIn(delay: 300.ms, duration: 400.ms),
+                        
                         const SizedBox(height: 40),
-                        SizedBox(
+                        
+                        Container(
                           width: double.infinity,
-                          height: 50,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            gradient: AppColors.primaryGradient,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: AppDecorations.buttonShadow,
+                          ),
                           child: ElevatedButton(
                             onPressed: _saveProfile,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
                             child: Text(
-                              "save_profile_btn".tr(),
-                              style: const TextStyle(fontSize: 18),
+                              "save_profile_btn".tr().contains("save_profile_btn") ? "Save & Continue" : "save_profile_btn".tr(),
+                              style: AppTextStyles.premiumButtonText.copyWith(fontSize: 18),
                             ),
                           ),
-                        ),
+                        )
+                        .animate()
+                        .fadeIn(delay: 400.ms, duration: 400.ms),
                       ],
                     ],
                   ),
@@ -277,32 +418,106 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildProfileDisplayRow(IconData icon, String label, String? value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildProfileDisplayHeader(String name) {
+    return Center(
+      child: Column(
         children: [
-          Icon(icon, size: 20, color: Colors.green),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.primary, width: 2),
+            ),
+            child: CircleAvatar(
+              radius: 46,
+              backgroundColor: AppColors.primaryLight,
+              child: Text(
+                name.isNotEmpty ? name[0].toUpperCase() : 'U',
+                style: GoogleFonts.outfit(
+                  fontSize: 36,
+                  color: AppColors.primaryDark,
+                  fontWeight: FontWeight.bold,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  value ?? 'N/A',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                ),
-              ],
+              ),
+            ),
+          )
+          .animate()
+          .scale(duration: 400.ms, curve: Curves.easeOutBack),
+          const SizedBox(height: 16),
+          Text(
+            name,
+            style: GoogleFonts.outfit(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textDark,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            "Registered Seller",
+            style: GoogleFonts.outfit(
+              fontSize: 14,
+              color: AppColors.textMuted,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildProfileDisplayRow(IconData icon, String label, String? value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12.0),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border, width: 1.0),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight.withOpacity(0.4),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 20, color: AppColors.primaryDark),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: GoogleFonts.outfit(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value ?? 'N/A',
+                    style: GoogleFonts.outfit(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textDark,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    )
+    .animate()
+    .fadeIn(duration: 300.ms)
+    .slideX(begin: 0.05, end: 0);
   }
 }

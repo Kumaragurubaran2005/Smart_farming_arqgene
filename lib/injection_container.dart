@@ -19,6 +19,13 @@ import 'features/listing/domain/repositories/listing_repository.dart';
 import 'features/listing/domain/usecases/create_listing_usecase.dart';
 import 'features/listing/domain/usecases/get_listings_usecase.dart';
 import 'features/listing/presentation/providers/listing_provider.dart';
+import 'features/listing/presentation/providers/listing_form_provider.dart';
+import 'features/cart/presentation/providers/cart_provider.dart';
+import 'core/services/open_router_service.dart';
+import 'core/services/cloudinary_service.dart';
+import 'core/services/firestore_image_service.dart';
+import 'features/voice_assistant/services/groq_whisper_service.dart';
+import 'features/voice_assistant/services/voice_recorder_service.dart';
 
 final sl = GetIt.instance;
 
@@ -56,6 +63,22 @@ Future<void> init() async {
     () => ListingProvider(
       createListingUseCase: sl(),
       getListingsUseCase: sl(),
+      repository: sl(),
+    ),
+  );
+  sl.registerFactory(
+    () => ListingFormProvider(
+      groqWhisperService: sl(),
+      recorderService: sl(),
+      openRouterService: sl(),
+      cloudinaryService: sl(),
+      firestoreImageService: sl(),
+    ),
+  );
+  sl.registerFactory(
+    () => CartProvider(
+      firestore: sl(),
+      auth: sl(),
     ),
   );
 
@@ -88,4 +111,15 @@ Future<void> init() async {
   
   final isarService = IsarService();
   sl.registerLazySingleton(() => isarService);
+
+  // Services
+  sl.registerLazySingleton(() => OpenRouterService());
+  sl.registerLazySingleton(() => CloudinaryService());
+  sl.registerLazySingleton(
+    () => FirestoreImageService(
+      cloudinaryService: sl<CloudinaryService>(),
+    ),
+  );
+  sl.registerLazySingleton(() => GroqWhisperService());
+  sl.registerLazySingleton(() => VoiceRecorderService());
 }

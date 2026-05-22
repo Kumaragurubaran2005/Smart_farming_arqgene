@@ -15,6 +15,7 @@ class VerifyPhoneNumberUseCase implements UseCase<void, VerifyPhoneNumberParams>
       phoneNumber: params.phoneNumber,
       onCodeSent: params.onCodeSent,
       onAutoRetrievalTimeout: params.onAutoRetrievalTimeout,
+      onVerificationFailed: params.onVerificationFailed,
     );
   }
 }
@@ -23,13 +24,15 @@ class VerifyPhoneNumberParams extends Equatable {
   final String phoneNumber;
   final Function(String verificationId) onCodeSent;
   final Function(String verificationId) onAutoRetrievalTimeout;
+  final Function(String error) onVerificationFailed;
 
   const VerifyPhoneNumberParams({
     required this.phoneNumber,
     required this.onCodeSent,
     required this.onAutoRetrievalTimeout,
+    required this.onVerificationFailed,
   });
 
   @override
-  List<Object?> get props => [phoneNumber, onCodeSent, onAutoRetrievalTimeout];
+  List<Object?> get props => [phoneNumber, onCodeSent, onAutoRetrievalTimeout, onVerificationFailed];
 }

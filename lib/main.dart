@@ -2,28 +2,34 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
 import 'features/listing/presentation/providers/listing_provider.dart';
+import 'features/cart/presentation/providers/cart_provider.dart';
 import 'injection_container.dart' as di;
 import 'screens/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
   await Firebase.initializeApp();
   await EasyLocalization.ensureInitialized();
   await di.init();
 
   runApp(
     EasyLocalization(
-      supportedLocales: [
+      supportedLocales: const [
         Locale('en'), // English
+        Locale('hi'), // Hindi
+        Locale('ta'), // Tamil
       ],
       path: 'assets/translations',
-      fallbackLocale: Locale('en'),
+      fallbackLocale: const Locale('en'),
       child: MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => di.sl<AuthProvider>()),
           ChangeNotifierProvider(create: (_) => di.sl<ListingProvider>()),
+          ChangeNotifierProvider(create: (_) => di.sl<CartProvider>()),
         ],
         child: const MyApp(),
       ),

@@ -1,30 +1,78 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:arqgene_farmer_app/features/listing/presentation/providers/listing_form_provider.dart';
+import 'package:arqgene_farmer_app/core/services/open_router_service.dart';
+import 'package:arqgene_farmer_app/features/voice_assistant/services/groq_whisper_service.dart';
+import 'package:arqgene_farmer_app/features/voice_assistant/services/voice_recorder_service.dart';
 
-import 'package:arqgene_farmer_app/main.dart';
+class FakeOpenRouterService extends OpenRouterService {
+  @override
+  Future<Map<String, dynamic>?> extractEntitiesFromText(String transcription) async {
+    return {
+      'crop_name': 'Tomato',
+      'quantity': '50',
+      'unit': 'kg',
+      'price': '30',
+      'location': 'Chennai',
+      'additional_notes': 'Fresh crop'
+    };
+  }
+}
+
+class FakeGroqWhisperService extends GroqWhisperService {
+  @override
+  Future<String?> processAudio(String filePath) async {
+    return 'தக்காளி 50 கிலோ 30 ரூபாய் சென்னை';
+  }
+}
+
+class FakeVoiceRecorderService extends VoiceRecorderService {
+  @override
+  Future<bool> hasPermission() async => true;
+  @override
+  Future<void> startRecording() async {}
+  @override
+  Future<String?> stopRecording() async => 'dummy_path.wav';
+}
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp(isFirstRun: true));
+  group('ListingFormProvider Unit Tests', () {
+    late ListingFormProvider provider;
+    late FakeOpenRouterService fakeOpenRouter;
+    late FakeGroqWhisperService fakeGroqWhisper;
+    late FakeVoiceRecorderService fakeRecorder;
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    setUp(() {
+      fakeOpenRouter = FakeOpenRouterService();
+      fakeGroqWhisper = FakeGroqWhisperService();
+      fakeRecorder = FakeVoiceRecorderService();
+      provider = ListingFormProvider(
+        openRouterService: fakeOpenRouter,
+        groqWhisperService: fakeGroqWhisper,
+        recorderService: fakeRecorder,
+      );
+    });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    test('Initial values are empty', () {
+      expect(provider.transcriptionPreview, isEmpty);
+      expect(provider.productController.text, isEmpty);
+    });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    test('updateTranscriptionPreview updates preview state', () {
+      provider.updateTranscriptionPreview('Test transcription');
+      expect(provider.transcriptionPreview, 'Test transcription');
+    });
+
+    test('extractAndAutofill correctly maps entities to form controllers', () async {
+      provider.updateTranscriptionPreview('தக்காளி 50 கிலோ 30 ரூபாய் சென்னை');
+      await provider.extractAndAutofill();
+
+      expect(provider.productController.text, 'Tomato');
+      expect(provider.quantityController.text, '50');
+      expect(provider.unitController.text, 'kg');
+      expect(provider.priceController.text, '30');
+      expect(provider.addressController.text, 'Chennai');
+      expect(provider.descriptionController.text, 'Fresh crop');
+      expect(provider.transcriptionPreview, isEmpty); // Clears preview on success
+    });
   });
 }

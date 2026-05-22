@@ -18,20 +18,14 @@ class AuthRepositoryImpl implements AuthRepository {
     required String phoneNumber,
     required Function(String verificationId) onCodeSent,
     required Function(String verificationId) onAutoRetrievalTimeout,
+    required Function(String error) onVerificationFailed,
   }) async {
     try {
       await remoteDataSource.verifyPhoneNumber(
         phoneNumber: phoneNumber,
         onCodeSent: onCodeSent,
         onAutoRetrievalTimeout: onAutoRetrievalTimeout,
-        onVerificationFailed: (error) {
-           // We can't return failure here easily as this is a callback.
-           // In a more complex setup, we might use a StreamController for errors.
-           // For now, we will print or rely on the UI not receiving the code sent event 
-           // and handling the timeout or generic error state if needed.
-           // However, for the initial call `verifyPhoneNumber`, if it fails immediately,
-           // it throws. If it fails later (async), it calls this.
-        },
+        onVerificationFailed: onVerificationFailed,
         onVerificationCompleted: (AuthCredential credential) async {
           // Auto-resolution on Android
           try {

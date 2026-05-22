@@ -1,14 +1,23 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
 
 class VoiceRecorderService {
-  final AudioRecorder _audioRecorder = AudioRecorder();
+  AudioRecorder? _audioRecorderInstance;
+  AudioRecorder get _audioRecorder => _audioRecorderInstance ??= AudioRecorder();
 
   Future<bool> hasPermission() async {
+    debugPrint("🎤 Checking microphone permission...");
     final status = await Permission.microphone.request();
-    return status == PermissionStatus.granted;
+    if (status == PermissionStatus.granted) {
+      debugPrint("✅ Microphone permission granted.");
+      return true;
+    } else {
+      debugPrint("❌ Microphone permission denied.");
+      return false;
+    }
   }
 
   Future<void> startRecording() async {
@@ -17,11 +26,11 @@ class VoiceRecorderService {
     final Directory tempDir = await getTemporaryDirectory();
     final String filePath = '${tempDir.path}/voice_command.wav';
 
-    // Start recording to file with WAV encoder (preferred by Bhasini)
-    // If not supported, we might need to convert, but let's try WAV/PCM16.
+    // Start recording to file with WAV encoder
     const config = RecordConfig(
       encoder: AudioEncoder.wav, 
       sampleRate: 16000, 
+      bitRate: 128000,
       numChannels: 1,
     );
     
@@ -31,14 +40,43 @@ class VoiceRecorderService {
       file.deleteSync();
     }
 
-    await _audioRecorder.start(config, path: filePath);
+    try {
+      debugPrint("🎙️ Starting audio recording...");
+      await _audioRecorder.start(config, path: filePath);
+      debugPrint("🎙️ Audio recording started.");
+    } catch (e) {
+      debugPrint("❌ Error starting audio recording: $e");
+    }
   }
 
   Future<String?> stopRecording() async {
-    return await _audioRecorder.stop();
+    debugPrint("🛑 Stopping audio recording...");
+    try {
+      final path = await _audioRecorder.stop();
+      debugPrint("====== DEBUG RECORDING ======");
+      debugPrint("Audio Path: $path");
+      if (path != null) {
+        final file = File(path);
+        final exists = file.existsSync();
+        debugPrint("File exists: $exists");
+        if (exists) {
+          debugPrint("File size: ${file.lengthSync()} bytes");
+          if (file.lengthSync() == 0) {
+             debugPrint("❌ WARNING: Audio file is empty (0 bytes)!");
+          }
+        } else {
+          debugPrint("❌ WARNING: Audio file does not exist after recording!");
+        }
+      }
+      debugPrint("=============================");
+      return path;
+    } catch (e) {
+      debugPrint("❌ Error stopping audio recording: $e");
+      return null;
+    }
   }
 
   Future<void> dispose() async {
-    _audioRecorder.dispose();
+    _audioRecorderInstance?.dispose();
   }
 }

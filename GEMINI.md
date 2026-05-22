@@ -7,7 +7,7 @@ This is a Flutter-based mobile application for farmers, named "Arqgene Farmer Ap
 ### Key Features:
 *   **Authentication:** Secure phone number login via Firebase Authentication (OTP).
 *   **Clean Architecture:** The app follows Clean Architecture principles to ensure scalability and testability.
-*   **Voice Assistant:** Integrated AI Voice Assistant using the **Bhasini API** for speech-to-text (ASR) and translation, allowing farmers to navigate and perform actions using voice commands in their native language.
+*   **Voice Assistant:** Integrated AI Voice Assistant using **Groq Whisper Turbo** for language-agnostic speech-to-text (ASR) and **Gemini 1.5 Flash** for intent classification and entity extraction, allowing farmers to navigate and auto-fill forms using natural voice commands.
 *   **Listing Management:** Farmers can create product listings by taking photos or videos.
 *   **Localization:** Complete support for multiple languages (English, Hindi, Tamil).
 

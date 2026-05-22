@@ -45,4 +45,22 @@ subprojects {
     } else {
         project.afterEvaluate { fixNamespace() }
     }
+
+    val applyCompileSdk = {
+        val android = project.extensions.findByName("android")
+        if (android != null) {
+            try {
+                val baseExt = android as com.android.build.gradle.BaseExtension
+                baseExt.compileSdkVersion(35)
+            } catch (e: Exception) {
+                // Ignore incompatibility
+            }
+        }
+    }
+
+    if (project.state.executed) {
+        applyCompileSdk()
+    } else {
+        project.afterEvaluate { applyCompileSdk() }
+    }
 }

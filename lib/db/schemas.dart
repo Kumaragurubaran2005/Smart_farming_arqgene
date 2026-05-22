@@ -23,9 +23,20 @@ class CropListing {
   late String mediaPath; // Path to the image/video on the phone
   late String mediaType; // 'image' or 'video'
 
+  String? productName;
+  double? quantity;
+  String? unit;
   String? description;
   double? price;
   String? address; // <-- Add address field
+  
+  String? imageUrl;
+  String? languageDetected;
+  String? sellerId;
+  bool aiGenerated = false;
+
+  int views = 0;
+  String status = 'Active';
 
   late DateTime createdAt;
 

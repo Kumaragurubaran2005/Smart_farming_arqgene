@@ -9,6 +9,7 @@ abstract class AuthRepository {
     required String phoneNumber,
     required Function(String verificationId) onCodeSent,
     required Function(String verificationId) onAutoRetrievalTimeout,
+    required Function(String error) onVerificationFailed,
   });
 
   Future<Either<Failure, void>> verifyOTP({

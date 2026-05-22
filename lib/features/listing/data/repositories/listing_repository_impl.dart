@@ -21,9 +21,16 @@ class ListingRepositoryImpl implements ListingRepository {
       final model = ListingModel(
         mediaPath: listing.mediaPath,
         mediaType: listing.mediaType,
+        productName: listing.productName,
+        quantity: listing.quantity,
+        unit: listing.unit,
         description: listing.description,
         price: listing.price,
         address: listing.address,
+        imageUrl: listing.imageUrl,
+        languageDetected: listing.languageDetected,
+        sellerId: listing.sellerId,
+        aiGenerated: listing.aiGenerated,
         createdAt: listing.createdAt,
       );
       await remoteDataSource.createListing(model);
@@ -36,5 +43,54 @@ class ListingRepositoryImpl implements ListingRepository {
   @override
   Stream<List<ListingEntity>> getListings() {
     return remoteDataSource.getListings();
+  }
+
+  @override
+  Future<Either<Failure, void>> updateListing(ListingEntity listing) async {
+    try {
+      final model = ListingModel(
+        id: listing.id,
+        mediaPath: listing.mediaPath,
+        mediaType: listing.mediaType,
+        productName: listing.productName,
+        quantity: listing.quantity,
+        unit: listing.unit,
+        description: listing.description,
+        price: listing.price,
+        address: listing.address,
+        imageUrl: listing.imageUrl,
+        languageDetected: listing.languageDetected,
+        sellerId: listing.sellerId,
+        aiGenerated: listing.aiGenerated,
+        createdAt: listing.createdAt,
+        isSynced: listing.isSynced,
+        views: listing.views,
+        status: listing.status,
+      );
+      await remoteDataSource.updateListing(model);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteListing(String id) async {
+    try {
+      await remoteDataSource.deleteListing(id);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> incrementViews(String id) async {
+    try {
+      await remoteDataSource.incrementViews(id);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
   }
 }
